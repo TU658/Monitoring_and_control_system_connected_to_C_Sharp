@@ -1,0 +1,22 @@
+RAM Allocation [bytes]
+Variable                                                                          Address   Size
+------------------------------------------------------------------------------------------------
+ADC_out                                                                           0x0160       4
+dienap                                                                            0x0164       4
+nhietdo                                                                           0x0168       4
+
+EEPROM Allocation [bytes]
+Variable                                                                          Address   Size
+------------------------------------------------------------------------------------------------
+
+Register Allocation
+Variable                                                                          Register  Size
+------------------------------------------------------------------------------------------------
+
+FLASH Allocation [words]
+Function                                                                          Address   Size
+------------------------------------------------------------------------------------------------
+read_adc                                                                          0x00045     13
+SPI_tranceiver                                                                    0x00052      8
+spi_isr                                                                           0x0005A     48
+main                                                                              0x0008A    100

@@ -1,0 +1,163 @@
+/*****************************************************
+This program was produced by the
+CodeWizardAVR V2.05.0 Professional
+Automatic Program Generator
+© Copyright 1998-2010 Pavel Haiduc, HP InfoTech s.r.l.
+http://www.hpinfotech.com
+
+Project : 
+Version : 
+Date    : 4/15/2022
+Author  : 
+Company : 
+Comments: 
+
+
+Chip type               : ATmega16
+Program type            : Application
+AVR Core Clock frequency: 8.000000 MHz
+Memory model            : Small
+External RAM size       : 0
+Data Stack size         : 256
+*****************************************************/
+
+#include <mega16.h>
+#include <delay.h>
+#include <string.h>
+
+
+#define SPI_PORT PORTB
+#define SPI_DDR DDRB
+#define SCK_PIN  7
+#define MISO_PIN 6
+#define MOSI_PIN 5
+#define SS_PIN 4
+#define ADC_VREF_TYPE ((0<<REFS1) | (0<<REFS0) | (0<<ADLAR))
+
+unsigned long ADC_out;
+unsigned long dienap;
+
+unsigned long nhietdo;
+
+// Read the AD conversion result
+unsigned int read_adc(unsigned char adc_input)
+{
+ADMUX=adc_input | ADC_VREF_TYPE;   
+// Delay needed for the stabilization of the ADC input voltage
+delay_us(10);
+// Start the AD conversion
+ADCSRA |= (1<<ADSC);        
+while((ADCSRA & (1<<ADIF)) == 0);    
+ADCSRA |=(1<<ADIF);
+return ADCW;
+}
+
+
+//char SPI_Read()                /* SPI read data function */
+//{
+//
+//    while(!(SPSR & (1<<SPIF)));    /* Wait till reception complete */
+//    return(SPDR);            /* Return received data */
+//}
+//void SPI_Write(char data)        /* SPI write data function */
+//{
+//    SPDR = data;            /* Write data to SPI data register */
+//    while(!(SPSR & (1<<SPIF)));    /* Wait till transmission complete */
+//
+//    
+//}
+char SPI_tranceiver(char data)        /* SPI write data function */
+{
+    SPDR = data;            /* Write data to SPI data register */
+    while(!(SPSR & (1<<SPIF)));    /* Wait till transmission complete */
+    return(SPDR);    
+}
+// SPI interrupt service routine
+interrupt [SPI_STC] void spi_isr(void)
+{
+unsigned char data;
+data = SPI_tranceiver(nhietdo);
+if(data == '1')
+{   PORTC.0 = 1;
+}
+else if(data == '2')
+{   PORTC.0 = 0;
+}
+else if(data == '3')
+{   PORTC.1 = 1;
+}
+else if(data == '4')
+{   PORTC.1 = 0;
+}
+}
+
+         
+void main(void)
+{
+// Declare your local variables here
+
+// Port B initialization
+// Func7=In Func6=Out Func5=In Func4=In Func3=In Func2=In Func1=In Func0=In 
+// State7=T State6=0 State5=T State4=T State3=T State2=T State1=T State0=T 
+PORTB=0x00;
+DDRB=0x40;
+
+// Port C initialization
+// Func7=In Func6=In Func5=In Func4=In Func3=In Func2=In Func1=In Func0=In 
+// State7=T State6=T State5=T State4=T State3=T State2=T State1=T State0=T 
+PORTC=0x00;
+DDRC=0xFF;
+
+
+
+ // USART initialization
+// Communication Parameters: 8 Data, 1 Stop, No Parity
+// USART Receiver: On
+// USART Transmitter: On
+// USART Mode: Asynchronous
+// USART Baud Rate: 9600
+UCSRA=0x00;
+UCSRB=0x98;
+UCSRC=0x86;
+UBRRH=0x00;
+UBRRL=0x33;
+
+// ADC initialization
+// ADC Clock frequency: 1000.000 kHz
+// ADC Voltage Reference: AREF pin
+// ADC Auto Trigger Source: ADC Stopped
+ADMUX=ADC_VREF_TYPE;    
+ADCSRA=(1<<ADEN) | (0<<ADSC) | (0<<ADATE) | (0<<ADIF) | (0<<ADIE) | (0<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);
+SFIOR=(0<<ADTS2) | (0<<ADTS1) | (0<<ADTS0);
+
+// SPI initialization
+// SPI Type: Slave
+// SPI Clock Phase: Cycle Start
+// SPI Clock Polarity: Low
+// SPI Data Order: MSB First
+SPCR=0xC0;
+SPSR=0x00;
+SPI_DDR = SPI_DDR & ~((1 << MOSI_PIN) | (1 << SCK_PIN) | (1 << SS_PIN));
+SPI_DDR = SPI_DDR | (1 << MISO_PIN);
+SPI_PORT = SPI_PORT |(1 << SS_PIN);
+
+// Clear the SPI interrupt flag
+#asm
+    in   r30,spsr
+    in   r30,spdr
+#endasm
+
+// TWI initialization
+// TWI disabled
+TWCR=0x00;
+
+
+// Global enable interrupts
+#asm("sei")
+while (1)
+      { 
+        ADC_out = read_adc(0);  
+        dienap = ADC_out*5000/1023; 
+        nhietdo = dienap/10;
+      }
+}
